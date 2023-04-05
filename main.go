@@ -16,8 +16,10 @@ func main() {
 	router.HandleFunc("/courses", getCourses).Methods("GET")
 
 	srv := &http.Server{
-		Handler: router,
-		Addr:    "127.0.0.1:8000",
+		Handler:      router,
+		Addr:         "127.0.0.1:8000",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
 
 	err := srv.ListenAndServe()

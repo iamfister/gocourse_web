@@ -1,30 +1,35 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"encoding/json"
+	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
-	port := ":3333"
+	router := mux.NewRouter()
 
-	http.HandleFunc("/users", getUsers)
-	http.HandleFunc("/courses", getCourses)
+	router.HandleFunc("/users", getUsers)
+	router.HandleFunc("/courses", getCourses)
 
-	err := http.ListenAndServe(port, nil)
+	srv := &http.Server{
+		Handler: router,
+		Addr:    "127.0.0.1:8000",
+	}
+
+	err := srv.ListenAndServe()
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("got /users")
-	io.WriteString(w, "This is my user endpoint!\n")
+	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }
 
 func getCourses(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("got /courses")
-	io.WriteString(w, "This is my course endpoint!\n")
+	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }

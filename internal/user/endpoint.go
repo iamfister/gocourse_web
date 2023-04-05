@@ -16,6 +16,13 @@ type (
 		Update Controller
 		Delete Controller
 	}
+
+	CreateReq struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		Phone     string `json:"phone"`
+	}
 )
 
 func MakeEndpoints() Endpoints {
@@ -30,8 +37,16 @@ func MakeEndpoints() Endpoints {
 
 func makeCreateEndpoint() Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("create user")
-		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+		var req CreateReq
+
+		err := json.NewDecoder(r.Body).Decode(&req)
+
+		if err != nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		json.NewEncoder(w).Encode(req)
 	}
 }
 

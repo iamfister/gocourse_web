@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -11,8 +12,8 @@ import (
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/users", getUsers)
-	router.HandleFunc("/courses", getCourses)
+	router.HandleFunc("/users", getUsers).Methods("GET")
+	router.HandleFunc("/courses", getCourses).Methods("GET")
 
 	srv := &http.Server{
 		Handler: router,
@@ -27,9 +28,11 @@ func main() {
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(10 * time.Second)
 	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }
 
 func getCourses(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(10 * time.Second)
 	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }

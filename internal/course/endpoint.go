@@ -1,7 +1,8 @@
-package user
+package course
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -21,17 +22,19 @@ type (
 	}
 
 	CreateReq struct {
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Email     string `json:"email"`
-		Phone     string `json:"phone"`
+		Name      string `json:"name"`
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+	}
+
+	GetAllReq struct {
+		Name string
 	}
 
 	UpdateReq struct {
-		FirstName *string `json:"first_name"`
-		LastName  *string `json:"last_name"`
-		Email     *string `json:"email"`
-		Phone     *string `json:"phone"`
+		Name      *string `json:"name"`
+		StartDate *string `json:"start_date"`
+		EndDate   *string `json:"end_date"`
 	}
 
 	Response struct {
@@ -43,7 +46,6 @@ type (
 )
 
 func MakeEndpoints(s Service) Endpoints {
-
 	return Endpoints{
 		Create: makeCreateEndpoint(s),
 		Get:    makeGetEndpoint(s),
@@ -51,7 +53,6 @@ func MakeEndpoints(s Service) Endpoints {
 		Update: makeUpdateEndpoint(s),
 		Delete: makeDeleteEndpoint(s),
 	}
-
 }
 
 func makeCreateEndpoint(s Service) Controller {
@@ -61,40 +62,63 @@ func makeCreateEndpoint(s Service) Controller {
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "invalid request format"})
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: fmt.Sprintf("invalid request format: %v", err.Error())})
 			return
 		}
 
-		if req.FirstName == "" {
+		if req.Name == "" {
 			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "first name is required"})
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "name is required"})
 			return
 		}
 
-		if req.LastName == "" {
+		if req.StartDate == "" {
 			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "last name is required"})
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "start date is required"})
 			return
 		}
 
-		user, err := s.Create(req.FirstName, req.LastName, req.Email, req.Phone)
+		if req.EndDate == "" {
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "end date is required"})
+			return
+		}
+
+		course, err := s.Create(req.Name, req.StartDate, req.EndDate)
 		if err != nil {
 			w.WriteHeader(400)
 			json.NewEncoder(w).Encode(&Response{Status: 400, Err: err.Error()})
 			return
 		}
 
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: user})
+		json.NewEncoder(w).Encode(&Response{Status: 200, Data: course})
 	}
 }
+
+func makeGetEndpoint(s Service) Controller {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		path := mux.Vars(r)
+		id := path["id"]
+
+		course, err := s.Get(id)
+		if err != nil {
+			w.WriteHeader(404)
+			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "course doesn't exist"})
+			return
+		}
+
+		json.NewEncoder(w).Encode(&Response{Status: 200, Data: course})
+	}
+}
+
 func makeGetAllEndpoint(s Service) Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		v := r.URL.Query()
 
 		filters := Filters{
-			FirstName: v.Get("first_name"),
-			LastName:  v.Get("last_name"),
+			Name: v.Get("name"),
 		}
 
 		limit, _ := strconv.Atoi(v.Get("limit"))
@@ -114,28 +138,14 @@ func makeGetAllEndpoint(s Service) Controller {
 			return
 		}
 
-		users, err := s.GetAll(filters, meta.Offset(), meta.Limit())
+		courses, err := s.GetAll(filters, meta.Offset(), meta.Limit())
 		if err != nil {
 			w.WriteHeader(400)
 			json.NewEncoder(w).Encode(&Response{Status: 400, Err: err.Error()})
 			return
 		}
 
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: users, Meta: meta})
-	}
-}
-func makeGetEndpoint(s Service) Controller {
-	return func(w http.ResponseWriter, r *http.Request) {
-		path := mux.Vars(r)
-		id := path["id"]
-		user, err := s.Get(id)
-		if err != nil {
-			w.WriteHeader(404)
-			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "user doesn't exist"})
-			return
-		}
-
-		json.NewEncoder(w).Encode(&Response{Status: 200, Data: user})
+		json.NewEncoder(w).Encode(&Response{Status: 200, Data: courses, Meta: meta})
 	}
 }
 
@@ -145,28 +155,34 @@ func makeUpdateEndpoint(s Service) Controller {
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "invalid request format"})
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: fmt.Sprintf("invalid request format: %v", err.Error())})
 			return
 		}
 
-		if req.FirstName != nil && *req.FirstName == "" {
+		if req.Name != nil && *req.Name == "" {
 			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "first name is required"})
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "name is required"})
 			return
 		}
 
-		if req.LastName != nil && *req.LastName == "" {
+		if req.StartDate != nil && *req.StartDate == "" {
 			w.WriteHeader(400)
-			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "last name is required"})
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "start date is required"})
+			return
+		}
+
+		if req.EndDate != nil && *req.EndDate == "" {
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(&Response{Status: 400, Err: "end date is required"})
 			return
 		}
 
 		path := mux.Vars(r)
 		id := path["id"]
 
-		if err := s.Update(id, req.FirstName, req.LastName, req.Email, req.Phone); err != nil {
+		if err := s.Update(id, req.Name, req.StartDate, req.EndDate); err != nil {
 			w.WriteHeader(404)
-			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "user doesn't exist"})
+			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "course doesn't exist"})
 			return
 		}
 
@@ -176,12 +192,13 @@ func makeUpdateEndpoint(s Service) Controller {
 
 func makeDeleteEndpoint(s Service) Controller {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		path := mux.Vars(r)
 		id := path["id"]
 
 		if err := s.Delete(id); err != nil {
 			w.WriteHeader(404)
-			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "user doesn't exist"})
+			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "course doesn't exist"})
 			return
 		}
 
